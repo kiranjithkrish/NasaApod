@@ -8,6 +8,7 @@
 import XCTest
 @testable import NasaApod
 
+@MainActor
 final class APODTests: XCTestCase {
 
     // MARK: - JSON Decoding Tests

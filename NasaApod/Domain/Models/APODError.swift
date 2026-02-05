@@ -150,3 +150,32 @@ extension APODError {
         return .decodingFailed(underlyingError: decodingError)
     }
 }
+
+// MARK: - Equatable
+
+extension APODError: Equatable {
+    static func == (lhs: APODError, rhs: APODError) -> Bool {
+        switch (lhs, rhs) {
+        case (.networkUnavailable, .networkUnavailable),
+             (.requestTimeout, .requestTimeout),
+             (.invalidURL, .invalidURL),
+             (.cacheUnavailable, .cacheUnavailable),
+             (.cacheCorrupted, .cacheCorrupted),
+             (.noCachedData, .noCachedData),
+             (.circuitBreakerOpen, .circuitBreakerOpen):
+            return true
+        case (.requestFailed(let lhsCode), .requestFailed(let rhsCode)):
+            return lhsCode == rhsCode
+        case (.invalidData(let lhsReason), .invalidData(let rhsReason)):
+            return lhsReason == rhsReason
+        case (.invalidDateRange(let lhsEarliest, let lhsLatest), .invalidDateRange(let rhsEarliest, let rhsLatest)):
+            return lhsEarliest == rhsEarliest && lhsLatest == rhsLatest
+        case (.decodingFailed, .decodingFailed),
+             (.repositoryFailed, .repositoryFailed):
+            // Only compare case type, not underlying error
+            return true
+        default:
+            return false
+        }
+    }
+}

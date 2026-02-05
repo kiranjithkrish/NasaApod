@@ -20,8 +20,8 @@ enum Constants {
         static let timeoutInterval: TimeInterval = 30.0
 
         /// Date range limits for APOD
-        static let earliestDate = Calendar.current.date(from: DateComponents(year: 1995, month: 6, day: 16))!
-        static let latestDate = Date()
+        nonisolated static let earliestDate = Calendar.current.date(from: DateComponents(year: 1995, month: 6, day: 16))!
+        nonisolated static let latestDate = Date()
     }
 
     // MARK: - Cache Configuration

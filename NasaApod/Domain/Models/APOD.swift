@@ -48,7 +48,7 @@ struct APOD: Codable, Sendable, Identifiable {
     // MARK: - Computed Properties
 
     /// Parsed date from string
-    var parsedDate: Date? {
+    nonisolated var parsedDate: Date? {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
         return formatter.date(from: date)
@@ -75,9 +75,10 @@ struct APOD: Codable, Sendable, Identifiable {
     }
 }
 
-// MARK: - Decodable
+// MARK: - Codable
 
-///Init moved to extension to preserve the memberwise initialiser
+/// Codable conformance moved to extension to preserve the memberwise initialiser
+/// Methods marked nonisolated for Swift 6 actor isolation compatibility
 extension APOD {
     nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -91,6 +92,17 @@ extension APOD {
             copyright: try container.decodeIfPresent(String.self, forKey: .copyright)
         )
     }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(date, forKey: .date)
+        try container.encode(title, forKey: .title)
+        try container.encode(explanation, forKey: .explanation)
+        try container.encode(url, forKey: .url)
+        try container.encode(mediaType, forKey: .mediaType)
+        try container.encodeIfPresent(hdurl, forKey: .hdurl)
+        try container.encodeIfPresent(copyright, forKey: .copyright)
+    }
 }
 
 // MARK: - Validation
@@ -98,7 +110,7 @@ extension APOD {
 extension APOD {
     /// Validate the APOD model
     /// - Throws: APODError if validation fails
-    func validate() throws {
+    nonisolated func validate() throws {
         guard !date.isEmpty else {
             throw APODError.invalidData(reason: "Date is empty")
         }
@@ -115,7 +127,8 @@ extension APOD {
             throw APODError.invalidData(reason: "Invalid date format")
         }
 
-        let earliestDate = Constants.API.earliestDate
+        let earliestDate = Constants.API.
+        earliestDate
         let latestDate = Constants.API.latestDate
 
         guard let date = parsedDate, date >= earliestDate && date <= latestDate else {
