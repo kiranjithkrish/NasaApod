@@ -127,8 +127,7 @@ extension APOD {
             throw APODError.invalidData(reason: "Invalid date format")
         }
 
-        let earliestDate = Constants.API.
-        earliestDate
+        let earliestDate = Constants.API.earliestDate
         let latestDate = Constants.API.latestDate
 
         guard let date = parsedDate, date >= earliestDate && date <= latestDate else {
