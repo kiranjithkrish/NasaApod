@@ -10,36 +10,44 @@ import OSLog
 
 /// Centralized logging system with structured levels
 enum AppLogger {
-    private static let subsystem = Bundle.main.bundleIdentifier ?? "com.nasa.apod"
+    private nonisolated static var subsystem: String { "com.nasa.apod" }
 
     // MARK: - Log Categories
 
-    private static let general = Logger(subsystem: subsystem, category: "general")
-    private static let network = Logger(subsystem: subsystem, category: "network")
-    private static let cache = Logger(subsystem: subsystem, category: "cache")
-    private static let ui = Logger(subsystem: subsystem, category: "ui")
+    private nonisolated static var general: Logger {
+        Logger(subsystem: subsystem, category: "general")
+    }
+    private nonisolated static var network: Logger {
+        Logger(subsystem: subsystem, category: "network")
+    }
+    private nonisolated static var cache: Logger {
+        Logger(subsystem: subsystem, category: "cache")
+    }
+    private nonisolated static var ui: Logger {
+        Logger(subsystem: subsystem, category: "ui")
+    }
 
     // MARK: - Log Levels
 
     /// Debug-level logging (disabled in Release)
-    static func debug(_ message: String, category: LogCategory = .general) {
+    nonisolated static func debug(_ message: String, category: LogCategory = .general) {
         #if DEBUG
         logger(for: category).debug("\(message)")
         #endif
     }
 
     /// Info-level logging
-    static func info(_ message: String, category: LogCategory = .general) {
+    nonisolated static func info(_ message: String, category: LogCategory = .general) {
         logger(for: category).info("\(message)")
     }
 
     /// Warning-level logging
-    static func warning(_ message: String, category: LogCategory = .general) {
+    nonisolated static func warning(_ message: String, category: LogCategory = .general) {
         logger(for: category).warning("\(message)")
     }
 
     /// Error-level logging
-    static func error(_ message: String, error: Error? = nil, category: LogCategory = .general) {
+    nonisolated static func error(_ message: String, error: Error? = nil, category: LogCategory = .general) {
         if let error = error {
             logger(for: category).error("\(message): \(error.localizedDescription)")
         } else {
@@ -50,42 +58,42 @@ enum AppLogger {
     // MARK: - Network-Specific Logging
 
     /// Log network request
-    static func logRequest(url: URL, method: String = "GET") {
+    nonisolated static func logRequest(url: URL, method: String = "GET") {
         #if DEBUG
         network.debug("→ \(method) \(url.absoluteString)")
         #endif
     }
 
     /// Log network response
-    static func logResponse(url: URL, statusCode: Int, duration: TimeInterval) {
+    nonisolated static func logResponse(url: URL, statusCode: Int, duration: TimeInterval) {
         #if DEBUG
         network.debug("← \(statusCode) \(url.absoluteString) (\(String(format: "%.2f", duration))s)")
         #endif
     }
 
     /// Log network error
-    static func logNetworkError(_ error: Error, url: URL) {
+    nonisolated static func logNetworkError(_ error: Error, url: URL) {
         network.error("Network error for \(url.absoluteString): \(error.localizedDescription)")
     }
 
     // MARK: - Cache-Specific Logging
 
     /// Log cache hit
-    static func logCacheHit(key: String) {
+    nonisolated static func logCacheHit(key: String) {
         #if DEBUG
         cache.debug("✓ Cache HIT: \(key)")
         #endif
     }
 
     /// Log cache miss
-    static func logCacheMiss(key: String) {
+    nonisolated static func logCacheMiss(key: String) {
         #if DEBUG
         cache.debug("✗ Cache MISS: \(key)")
         #endif
     }
 
     /// Log cache save
-    static func logCacheSave(key: String) {
+    nonisolated static func logCacheSave(key: String) {
         #if DEBUG
         cache.debug("💾 Cache SAVE: \(key)")
         #endif
@@ -93,7 +101,7 @@ enum AppLogger {
 
     // MARK: - Private Helpers
 
-    private static func logger(for category: LogCategory) -> Logger {
+    private nonisolated static func logger(for category: LogCategory) -> Logger {
         switch category {
         case .general:
             return general
