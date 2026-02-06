@@ -8,7 +8,7 @@
 import Foundation
 
 /// Astronomy Picture of the Day model
-struct APOD: Codable, Sendable, Identifiable {
+struct APOD: Codable, Sendable, Identifiable, Hashable {
     /// Date of the APOD (YYYY-MM-DD format)
     let date: String
 

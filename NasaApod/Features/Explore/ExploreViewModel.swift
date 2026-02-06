@@ -10,7 +10,18 @@ import Foundation
 @MainActor
 @Observable
 final class ExploreViewModel {
+    // MARK: - Navigation Destination
+
+    /// State-driven navigation - enum prevents impossible states
+    /// Extensible for deep linking: set destination from URL handler
+    enum Destination: Hashable {
+        case imageDetail(APOD)
+    }
+
     // MARK: - State
+
+    /// Navigation destination (nil = no navigation active)
+    var destination: Destination?
 
     /// Loading state using enum (prevents impossible states)
     var state: LoadingState<APOD> = .idle
