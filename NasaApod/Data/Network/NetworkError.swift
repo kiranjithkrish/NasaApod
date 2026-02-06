@@ -22,7 +22,24 @@ enum NetworkError: Error, LocalizedError, Sendable {
         case .invalidURL:
             return "The URL is invalid."
         case .httpError(let statusCode):
-            return "HTTP error with status code: \(statusCode)"
+            switch statusCode {
+            case 400:
+                return "Invalid request. Please try again."
+            case 401:
+                return "Invalid API key. Please check your configuration."
+            case 403:
+                return "API access denied. You may have exceeded the rate limit."
+            case 404:
+                return "No APOD available for this date. NASA publishes daily on US Eastern Time."
+            case 429:
+                return "Too many requests. Please wait a moment and try again."
+            case 400...499:
+                return "Request failed (error \(statusCode)). Please try again."
+            case 500...599:
+                return "NASA server is temporarily unavailable. Please try again later."
+            default:
+                return "Unexpected response (status code: \(statusCode))"
+            }
         case .noData:
             return "No data received from server."
         case .decodingFailed(let error):
