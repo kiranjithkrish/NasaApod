@@ -31,7 +31,7 @@ struct RetryPolicy: Sendable {
     /// Execute operation with retry logic
     /// - Parameter operation: Async throwing operation to retry
     /// - Returns: Result of successful operation
-    /// - Throws: Last error if all attempts fail
+    /// - Throws: Last error if all attempts fail, or immediately for non-retryable errors
     func execute<T>(_ operation: @Sendable () async throws -> T) async throws -> T {
         var lastError: Error?
 
@@ -46,6 +46,12 @@ struct RetryPolicy: Sendable {
                 return result
             } catch {
                 lastError = error
+
+                // Don't retry non-retryable errors (401, 403, 404, 429, etc.)
+                if let networkError = error as? NetworkError, !networkError.isRetryable {
+                    AppLogger.warning("Non-retryable error (\(networkError)), skipping retry", category: .network)
+                    throw error
+                }
 
                 let isLastAttempt = attempt == maxAttempts - 1
                 if isLastAttempt {

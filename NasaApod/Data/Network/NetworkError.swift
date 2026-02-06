@@ -17,6 +17,23 @@ enum NetworkError: Error, LocalizedError, Sendable {
     case timeout
     case unknown(Error)
 
+    /// Whether this error should trigger a retry
+    /// Only transient errors (server issues, timeouts) are retryable
+    /// Client errors (401, 403, 404, 429) won't be fixed by retrying
+    var isRetryable: Bool {
+        switch self {
+        case .httpError(let statusCode):
+            // Only retry server errors (5xx)
+            return (500...599).contains(statusCode)
+        case .timeout, .networkUnavailable:
+            // Transient network issues - worth retrying
+            return true
+        case .invalidURL, .noData, .decodingFailed, .unknown:
+            // Client/parsing errors - retrying won't help
+            return false
+        }
+    }
+
     var errorDescription: String? {
         switch self {
         case .invalidURL:

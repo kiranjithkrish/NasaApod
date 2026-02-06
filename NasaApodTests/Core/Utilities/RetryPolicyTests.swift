@@ -109,6 +109,86 @@ final class RetryPolicyTests: XCTestCase {
             XCTAssertEqual(operationSpy.callCount, 3)
         }
     }
+
+    // MARK: - Non-Retryable Error Tests
+
+    func testExecuteWithNonRetryableError_FailsImmediately() async {
+        // Given - 429 is non-retryable
+        let policy = RetryPolicy(maxAttempts: 3, baseDelay: 0.1, maxDelay: 1.0)
+        var operationSpy = OperationSpy(
+            failOnAttempts: [0, 1, 2],
+            customError: NetworkError.httpError(statusCode: 429)
+        )
+
+        // When/Then
+        do {
+            _ = try await policy.execute {
+                try await operationSpy.execute()
+            }
+            XCTFail("Expected operation to throw immediately")
+        } catch {
+            // Then - Should fail on first attempt, no retries
+            XCTAssertEqual(operationSpy.callCount, 1, "Non-retryable error should not trigger retries")
+        }
+    }
+
+    func testExecuteWith401_FailsImmediately() async {
+        // Given - 401 Unauthorized is non-retryable
+        let policy = RetryPolicy(maxAttempts: 3, baseDelay: 0.1, maxDelay: 1.0)
+        var operationSpy = OperationSpy(
+            failOnAttempts: [0],
+            customError: NetworkError.httpError(statusCode: 401)
+        )
+
+        // When/Then
+        do {
+            _ = try await policy.execute {
+                try await operationSpy.execute()
+            }
+            XCTFail("Expected operation to throw immediately")
+        } catch {
+            XCTAssertEqual(operationSpy.callCount, 1, "401 should not trigger retries")
+        }
+    }
+
+    func testExecuteWith403_FailsImmediately() async {
+        // Given - 403 Forbidden is non-retryable
+        let policy = RetryPolicy(maxAttempts: 3, baseDelay: 0.1, maxDelay: 1.0)
+        var operationSpy = OperationSpy(
+            failOnAttempts: [0],
+            customError: NetworkError.httpError(statusCode: 403)
+        )
+
+        // When/Then
+        do {
+            _ = try await policy.execute {
+                try await operationSpy.execute()
+            }
+            XCTFail("Expected operation to throw immediately")
+        } catch {
+            XCTAssertEqual(operationSpy.callCount, 1, "403 should not trigger retries")
+        }
+    }
+
+    func testExecuteWith500_RetriesBeforeFailing() async {
+        // Given - 500 Server Error IS retryable
+        let policy = RetryPolicy(maxAttempts: 3, baseDelay: 0.1, maxDelay: 1.0)
+        var operationSpy = OperationSpy(
+            failOnAttempts: [0, 1, 2],
+            customError: NetworkError.httpError(statusCode: 500)
+        )
+
+        // When/Then
+        do {
+            _ = try await policy.execute {
+                try await operationSpy.execute()
+            }
+            XCTFail("Expected operation to throw after retries")
+        } catch {
+            // Then - Should retry all 3 attempts for server errors
+            XCTAssertEqual(operationSpy.callCount, 3, "500 error SHOULD trigger retries")
+        }
+    }
 }
 
 // MARK: - Test Helpers
