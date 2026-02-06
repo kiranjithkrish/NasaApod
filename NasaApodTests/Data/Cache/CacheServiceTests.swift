@@ -30,11 +30,14 @@ final class CacheServiceTests: XCTestCase {
     // MARK: - Save and Load Tests
 
     func testSaveAndLoadReturnsAPOD() async throws {
+        // Given
         let apod = makeAPOD(date: "2024-01-15")
 
+        // When
         try await cacheService.save(apod, forKey: "test-key")
         let loaded = try await cacheService.load(forKey: "test-key")
 
+        // Then
         let loadedDate = loaded.date
         let loadedTitle = loaded.title
         XCTAssertEqual(loadedDate, apod.date)
@@ -42,6 +45,7 @@ final class CacheServiceTests: XCTestCase {
     }
 
     func testLoadWithEmptyKeyThrowsError() async {
+        // Given/When/Then
         do {
             _ = try await cacheService.load(forKey: "")
             XCTFail("Expected error to be thrown")
@@ -53,8 +57,10 @@ final class CacheServiceTests: XCTestCase {
     }
 
     func testSaveWithEmptyKeyThrowsError() async {
+        // Given
         let apod = makeAPOD()
 
+        // When/Then
         do {
             try await cacheService.save(apod, forKey: "")
             XCTFail("Expected error to be thrown")
@@ -66,6 +72,7 @@ final class CacheServiceTests: XCTestCase {
     }
 
     func testLoadNonExistentKeyThrowsNoDataError() async {
+        // Given/When/Then
         do {
             _ = try await cacheService.load(forKey: "non-existent-key")
             XCTFail("Expected error to be thrown")
@@ -76,14 +83,20 @@ final class CacheServiceTests: XCTestCase {
         }
     }
 
-    // MARK: - Last Successful Tests
+    // MARK: - Last Successful APOD Tests (Only ONE cached at a time)
+    //
+    // Requirement: "Last service call including image should be cached"
+    // Only the LAST successful APOD is stored, not every APOD loaded.
 
     func testSaveAndLoadLastSuccessful() async throws {
+        // Given
         let apod = makeAPOD(date: "2024-02-20", title: "Last Successful APOD")
 
+        // When
         try await cacheService.saveLastSuccessful(apod)
         let loaded = try await cacheService.loadLastSuccessful()
 
+        // Then
         let loadedDate = loaded.date
         let loadedTitle = loaded.title
         XCTAssertEqual(loadedDate, "2024-02-20")
@@ -91,6 +104,7 @@ final class CacheServiceTests: XCTestCase {
     }
 
     func testLoadLastSuccessfulWhenNoneExistsThrowsError() async {
+        // Given/When/Then
         do {
             _ = try await cacheService.loadLastSuccessful()
             XCTFail("Expected error to be thrown")
@@ -101,34 +115,55 @@ final class CacheServiceTests: XCTestCase {
         }
     }
 
-    func testSaveLastSuccessfulOverwritesPrevious() async throws {
+    func testSaveLastSuccessful_OnlyKeepsOneAPOD_ClearsPrevious() async throws {
+        // Given - Two different APODs
         let firstAPOD = makeAPOD(date: "2024-01-01", title: "First")
         let secondAPOD = makeAPOD(date: "2024-02-02", title: "Second")
 
+        // When - Save first, then second
         try await cacheService.saveLastSuccessful(firstAPOD)
         try await cacheService.saveLastSuccessful(secondAPOD)
 
+        // Then - Only second (last) APOD exists
         let loaded = try await cacheService.loadLastSuccessful()
+        XCTAssertEqual(loaded.date, "2024-02-02")
+        XCTAssertEqual(loaded.title, "Second")
 
-        let loadedDate = loaded.date
-        let loadedTitle = loaded.title
-        XCTAssertEqual(loadedDate, "2024-02-02")
-        XCTAssertEqual(loadedTitle, "Second")
+        // And - First APOD is completely cleared (not just overwritten)
+        do {
+            _ = try await cacheService.load(forKey: "2024-01-01")
+            XCTFail("First APOD should be cleared - only last successful is kept")
+        } catch {
+            // Expected - only ONE APOD cached at a time
+        }
+    }
+
+    func testSaveLastSuccessful_UsesDateAsKey() async throws {
+        // Given
+        let apod = makeAPOD(date: "2024-03-15", title: "Test APOD")
+
+        // When
+        try await cacheService.saveLastSuccessful(apod)
+
+        // Then - Can load using date as key
+        let loaded = try await cacheService.load(forKey: "2024-03-15")
+        XCTAssertEqual(loaded.date, "2024-03-15")
     }
 
     // MARK: - Clear Cache Tests
 
     func testClearCacheRemovesAllData() async throws {
+        // Given
         let apod1 = makeAPOD(date: "2024-01-01")
         let apod2 = makeAPOD(date: "2024-01-02")
-
         try await cacheService.save(apod1, forKey: "key1")
         try await cacheService.save(apod2, forKey: "key2")
         try await cacheService.saveLastSuccessful(apod1)
 
+        // When
         try await cacheService.clearCache()
 
-        // All loads should fail after clearing
+        // Then - All loads should fail after clearing
         do {
             _ = try await cacheService.load(forKey: "key1")
             XCTFail("Expected error after clearing cache")
@@ -154,14 +189,15 @@ final class CacheServiceTests: XCTestCase {
     // MARK: - Memory and Disk Cache Tests
 
     func testDataPersistsToDisk() async throws {
+        // Given
         let apod = makeAPOD(date: "2024-03-15")
-
         try await cacheService.save(apod, forKey: "persist-test")
 
-        // Create new cache service instance (simulates app restart)
+        // When - Create new cache service instance (simulates app restart)
         let newCacheService = try CacheService()
         let loaded = try await newCacheService.load(forKey: "persist-test")
 
+        // Then
         let loadedDate = loaded.date
         XCTAssertEqual(loadedDate, "2024-03-15")
     }
@@ -169,15 +205,17 @@ final class CacheServiceTests: XCTestCase {
     // MARK: - Multiple Keys Tests
 
     func testMultipleKeysStoredIndependently() async throws {
+        // Given
         let apod1 = makeAPOD(date: "2024-01-01", title: "First")
         let apod2 = makeAPOD(date: "2024-01-02", title: "Second")
 
+        // When
         try await cacheService.save(apod1, forKey: "key1")
         try await cacheService.save(apod2, forKey: "key2")
-
         let loaded1 = try await cacheService.load(forKey: "key1")
         let loaded2 = try await cacheService.load(forKey: "key2")
 
+        // Then
         let loaded1Title = loaded1.title
         let loaded2Title = loaded2.title
         XCTAssertEqual(loaded1Title, "First")

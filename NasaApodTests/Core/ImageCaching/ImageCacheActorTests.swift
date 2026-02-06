@@ -93,7 +93,11 @@ final class ImageCacheActorTests: XCTestCase {
         XCTAssertNil(retrieved2)
     }
 
-    // MARK: - Disk Cache Tests (Keyed by APOD identifier)
+    // MARK: - Disk Cache Tests (Keyed by APOD date)
+    //
+    // Requirement: "Last service call including image should be cached"
+    // Images are keyed by APOD date for linking with APOD data.
+    // CachedAsyncImage clears old images before saving to ensure only ONE image is stored.
 
     func testSaveImageToDisk_PersistsToDisk() async {
         // Given
@@ -281,5 +285,46 @@ final class ImageCacheActorTests: XCTestCase {
         let hasImage2 = await sut.hasImage(forKey: "2024-02-06")
         XCTAssertFalse(hasImage1)
         XCTAssertFalse(hasImage2)
+    }
+
+    // MARK: - Last Successful Image Tests (Only ONE cached at a time)
+    //
+    // Requirement: "Last service call including image should be cached"
+    // CachedAsyncImage clears all before saving to ensure only the LAST image is stored.
+    // This simulates that flow.
+
+    func testSaveLastSuccessfulImage_OnlyKeepsOneImage_ClearsPrevious() async {
+        // Given - Two different images for different dates
+        let image1 = createTestImage(color: .red)
+        let image2 = createTestImage(color: .blue)
+        let key1 = "2024-02-05"
+        let key2 = "2024-02-06"
+
+        // When - Save first, then second as last successful
+        await sut.saveLastSuccessfulImage(image1, forKey: key1)
+        await sut.saveLastSuccessfulImage(image2, forKey: key2)
+
+        // Then - Only second (last) image exists
+        let hasImage1 = await sut.hasImage(forKey: key1)
+        let hasImage2 = await sut.hasImage(forKey: key2)
+        XCTAssertFalse(hasImage1, "First image should be cleared - only last successful is kept")
+        XCTAssertTrue(hasImage2, "Last successful image should exist")
+    }
+
+    func testSaveLastSuccessfulImage_CanLoadAfterAppRestart() async {
+        // Given - Save last successful image
+        let image = createTestImage(color: .green)
+        let key = "2024-02-06"
+        await sut.saveLastSuccessfulImage(image, forKey: key)
+
+        // When - Simulate app restart (new cache instance, memory cleared)
+        let newCache = ImageCacheActor()
+
+        // Then - Can still load from disk
+        let loaded = await newCache.loadImage(forKey: key)
+        XCTAssertNotNil(loaded, "Last successful image should survive app restart")
+
+        // Cleanup
+        await newCache.clearAllFromDisk()
     }
 }

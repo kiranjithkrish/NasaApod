@@ -48,28 +48,61 @@ struct APODRepository: APODRepositoryProtocol {
         do {
             let apod = try await apiService.fetchAPOD(for: date)
 
-            // Success: save to cache and reset circuit breaker
-            try? await cacheService.save(apod, forKey: cacheKey(for: date))
+            // Success: save as last successful and reset circuit breaker
             try? await cacheService.saveLastSuccessful(apod)
             await circuitBreaker.recordSuccess()
 
             return apod
 
-        } catch let error as APODError {
-            // Record failure
-            await circuitBreaker.recordFailure()
-            AppLogger.warning("Network fetch failed: \(error.localizedDescription)", category: .network)
+        } catch let error as NetworkError {
+            // Only fall back to cache for connectivity errors, not HTTP errors
+            if shouldFallbackToCache(for: error) {
+                await circuitBreaker.recordFailure()
+                AppLogger.warning("Network unavailable, falling back to cache", category: .network)
+                return try await loadFromCache(for: date, originalError: error)
+            } else {
+                // HTTP errors (404, etc.) - don't use cache, show error
+                AppLogger.warning("HTTP error: \(error.localizedDescription)", category: .network)
+                throw error
+            }
 
-            // Fallback to cache
-            return try await loadFromCache(for: date, originalError: error)
+        } catch let error as APODError {
+            // Only fall back to cache for network-related APOD errors
+            if shouldFallbackToCache(for: error) {
+                await circuitBreaker.recordFailure()
+                AppLogger.warning("Network fetch failed: \(error.localizedDescription)", category: .network)
+                return try await loadFromCache(for: date, originalError: error)
+            } else {
+                throw error
+            }
 
         } catch {
-            // Record failure
+            // Unknown errors - try cache as fallback
             await circuitBreaker.recordFailure()
             AppLogger.error("Unexpected error", error: error, category: .network)
-
-            // Fallback to cache
             return try await loadFromCache(for: date, originalError: error)
+        }
+    }
+
+    /// Determine if we should fall back to cache for this error
+    /// Only network connectivity errors should use cache fallback
+    private func shouldFallbackToCache(for error: NetworkError) -> Bool {
+        switch error {
+        case .networkUnavailable, .timeout:
+            return true  // Connectivity issues - use cache
+        case .httpError, .invalidURL, .noData, .decodingFailed, .unknown:
+            return false // Server responded - don't mask with old cache
+        }
+    }
+
+    private func shouldFallbackToCache(for error: APODError) -> Bool {
+        switch error {
+        case .networkUnavailable, .requestTimeout, .circuitBreakerOpen:
+            return true  // Connectivity issues - use cache
+        case .requestFailed, .invalidURL, .invalidData, .decodingFailed,
+             .invalidDateRange, .cacheUnavailable, .cacheCorrupted,
+             .noCachedData, .repositoryFailed:
+            return false // Don't mask actual errors with old cache
         }
     }
 

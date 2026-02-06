@@ -64,6 +64,18 @@ actor ImageCacheActor {
         AppLogger.info("Memory image cache cleared", category: .cache)
     }
 
+    // MARK: - Last Successful Image (Only ONE cached at a time)
+    //
+    // Requirement: "Last service call including image should be cached"
+    // Only the LAST successful image is stored, not every image loaded.
+
+    /// Save as last successful image - clears previous and saves new
+    /// This ensures only ONE image is cached at a time (the last successful one)
+    func saveLastSuccessfulImage(_ image: UIImage, forKey key: String) {
+        clearAllFromDisk()
+        saveImageToDisk(image, forKey: key)
+    }
+
     // MARK: - Disk Cache Methods (Keyed by APOD identifier)
 
     /// Save image to disk for offline access, keyed by APOD identifier (e.g., date)

@@ -70,8 +70,8 @@ struct CachedAsyncImage<Content: View, Placeholder: View>: View {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             if let downloadedImage = UIImage(data: data) {
-                // Save to cache (memory + disk) with the APOD key
-                await imageCache.saveImageToDisk(downloadedImage, forKey: cacheKey)
+                // Save as last successful (clears previous, only keeps one)
+                await imageCache.saveLastSuccessfulImage(downloadedImage, forKey: cacheKey)
                 self.image = downloadedImage
             }
         } catch {

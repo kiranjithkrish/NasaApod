@@ -89,14 +89,35 @@ actor CacheService: CacheServiceProtocol {
     }
 
     /// Save last successful APOD (for offline fallback)
+    /// Clears previous cache to ensure only one APOD is stored
     func saveLastSuccessful(_ apod: APOD) async throws {
-        try await save(apod, forKey: Constants.Cache.lastSuccessfulKey)
+        // Clear previous cache (only keep last successful)
+        try await clearCache()
+        // Save with date as key
+        try await save(apod, forKey: apod.date)
         AppLogger.info("Saved last successful APOD: \(apod.date)", category: .cache)
     }
 
     /// Load last successful APOD
+    /// Loads the single cached APOD (scans directory for the one file)
     func loadLastSuccessful() async throws -> APOD {
-        return try await load(forKey: Constants.Cache.lastSuccessfulKey)
+        let fileManager = FileManager.default
+
+        // Find the single cached file
+        let contents = try fileManager.contentsOfDirectory(
+            at: cacheDirectory,
+            includingPropertiesForKeys: nil
+        )
+
+        let jsonFiles = contents.filter { $0.pathExtension == "json" }
+
+        guard let firstFile = jsonFiles.first else {
+            throw CacheError.noData
+        }
+
+        // Extract key from filename (e.g., "2024-02-06.json" → "2024-02-06")
+        let key = firstFile.deletingPathExtension().lastPathComponent
+        return try await load(forKey: key)
     }
 
     /// Clear all cached data
@@ -217,11 +238,15 @@ actor MockCacheService: CacheServiceProtocol {
     }
 
     func saveLastSuccessful(_ apod: APOD) async throws {
-        try await save(apod, forKey: Constants.Cache.lastSuccessfulKey)
+        storage.removeAll()  // Clear previous (only keep last successful)
+        try await save(apod, forKey: apod.date)
     }
 
     func loadLastSuccessful() async throws -> APOD {
-        return try await load(forKey: Constants.Cache.lastSuccessfulKey)
+        guard let firstEntry = storage.values.first else {
+            throw CacheError.noData
+        }
+        return firstEntry
     }
 
     func clearCache() async throws {
