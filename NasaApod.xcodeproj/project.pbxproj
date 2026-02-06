@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		799A9CDD2F36A40C00D90F68 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 799A9CDC2F36A40C00D90F68 /* README.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		799A9B922F3279A600D90F68 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		799A9B842F3279A400D90F68 /* NasaApod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NasaApod.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		799A9B912F3279A600D90F68 /* NasaApodTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NasaApodTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		799A9B9B2F3279A600D90F68 /* NasaApodUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NasaApodUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		799A9CDC2F36A40C00D90F68 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +80,7 @@
 		799A9B7B2F3279A400D90F68 = {
 			isa = PBXGroup;
 			children = (
+				799A9CDC2F36A40C00D90F68 /* README.md */,
 				799A9B862F3279A400D90F68 /* NasaApod */,
 				799A9B942F3279A600D90F68 /* NasaApodTests */,
 				799A9B9E2F3279A600D90F68 /* NasaApodUITests */,
@@ -212,6 +218,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				799A9CDD2F36A40C00D90F68 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

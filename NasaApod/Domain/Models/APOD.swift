@@ -30,6 +30,9 @@ struct APOD: Codable, Sendable, Identifiable, Hashable {
     /// Optional copyright information
     let copyright: String?
 
+    /// Optional thumbnail URL for videos (returned when thumbs=true)
+    let thumbnailUrl: String?
+
     /// Unique identifier for Identifiable conformance
     var id: String { date }
 
@@ -43,6 +46,7 @@ struct APOD: Codable, Sendable, Identifiable, Hashable {
         case mediaType = "media_type"
         case hdurl
         case copyright
+        case thumbnailUrl = "thumbnail_url"
     }
 
     // MARK: - Computed Properties
@@ -89,7 +93,8 @@ extension APOD {
             url: try container.decode(String.self, forKey: .url),
             mediaType: try container.decode(MediaType.self, forKey: .mediaType),
             hdurl: try container.decodeIfPresent(String.self, forKey: .hdurl),
-            copyright: try container.decodeIfPresent(String.self, forKey: .copyright)
+            copyright: try container.decodeIfPresent(String.self, forKey: .copyright),
+            thumbnailUrl: try container.decodeIfPresent(String.self, forKey: .thumbnailUrl)
         )
     }
 
@@ -102,6 +107,7 @@ extension APOD {
         try container.encode(mediaType, forKey: .mediaType)
         try container.encodeIfPresent(hdurl, forKey: .hdurl)
         try container.encodeIfPresent(copyright, forKey: .copyright)
+        try container.encodeIfPresent(thumbnailUrl, forKey: .thumbnailUrl)
     }
 }
 
@@ -151,7 +157,8 @@ extension APOD {
         url: "https://apod.nasa.gov/apod/image/2401/orion_nebula.jpg",
         mediaType: .image,
         hdurl: "https://apod.nasa.gov/apod/image/2401/orion_nebula_hd.jpg",
-        copyright: "NASA/ESA"
+        copyright: "NASA/ESA",
+        thumbnailUrl: nil
     )
 
     /// Sample video APOD for testing
@@ -162,7 +169,8 @@ extension APOD {
         url: "https://www.youtube.com/embed/abcd123",
         mediaType: .video,
         hdurl: nil,
-        copyright: nil
+        copyright: nil,
+        thumbnailUrl: "https://img.youtube.com/vi/abcd123/hqdefault.jpg"
     )
 }
 #endif

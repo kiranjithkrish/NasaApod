@@ -32,7 +32,8 @@ enum APODEndpoint {
 
     private var queryItems: [URLQueryItem] {
         var items: [URLQueryItem] = [
-            URLQueryItem(name: "api_key", value: Constants.API.apiKey)
+            URLQueryItem(name: "api_key", value: Constants.API.apiKey),
+            URLQueryItem(name: "thumbs", value: "true")  // Request video thumbnails
         ]
 
         switch self {

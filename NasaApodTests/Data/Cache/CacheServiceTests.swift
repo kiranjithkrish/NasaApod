@@ -237,7 +237,8 @@ extension CacheServiceTests {
             url: "https://example.com/image.jpg",
             mediaType: .image,
             hdurl: nil,
-            copyright: nil
+            copyright: nil,
+            thumbnailUrl: nil
         )
     }
 }

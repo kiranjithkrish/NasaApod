@@ -202,25 +202,16 @@ struct ExploreView: View {
                     .onTapGesture {
                         viewModel.destination = .imageDetail(apod)
                     }
-                } else {
-                    // Video placeholder
-                    VStack {
-                        Image(systemName: "play.rectangle.fill")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(height: 100)
-                            .foregroundColor(theme.primaryColor)
-
-                        Text("Video: \(apod.title)")
-                            .font(theme.headlineFont)
-
-                        Text("Video support coming soon")
-                            .font(theme.captionFont)
-                            .foregroundColor(theme.textSecondary)
-                    }
+                } else if let videoURL = URL(string: apod.url) {
+                    // Video with thumbnail - tap to open in YouTube/Safari
+                    VideoPlayerView(
+                        url: videoURL,
+                        title: apod.title,
+                        thumbnailUrl: apod.thumbnailUrl.flatMap { URL(string: $0) },
+                        cacheKey: apod.date,
+                        imageCache: imageCache
+                    )
                     .frame(height: 300)
-                    .frame(maxWidth: .infinity)
-                    .background(theme.cardBackground)
                     .cornerRadius(theme.cornerRadius)
                 }
 

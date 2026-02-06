@@ -291,7 +291,8 @@ extension APODTests {
         url: String = "https://example.com/image.jpg",
         mediaType: MediaType = .image,
         hdurl: String? = "https://example.com/hd.jpg",
-        copyright: String? = "NASA"
+        copyright: String? = "NASA",
+        thumbnailUrl: String? = nil
     ) -> APOD {
         APOD(
             date: date,
@@ -300,7 +301,8 @@ extension APODTests {
             url: url,
             mediaType: mediaType,
             hdurl: hdurl,
-            copyright: copyright
+            copyright: copyright,
+            thumbnailUrl: thumbnailUrl
         )
     }
 }
