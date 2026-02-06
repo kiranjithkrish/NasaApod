@@ -21,7 +21,8 @@ struct FavoritesView: View {
                     .font(theme.captionFont)
                     .foregroundColor(theme.textSecondary)
             }
-            .navigationTitle("Favorites")
+            .navigationTitle("My Favorites")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

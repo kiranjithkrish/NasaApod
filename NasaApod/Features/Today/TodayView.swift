@@ -25,7 +25,8 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Today")
+                .navigationTitle("Today's APOD")
+                .navigationBarTitleDisplayMode(.inline)
                 .refreshable {
                     await viewModel.refresh()
                 }

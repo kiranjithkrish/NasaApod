@@ -42,7 +42,8 @@ struct ExploreView: View {
                 // Content section
                 content
             }
-            .navigationTitle("Explore")
+            .navigationTitle("Explore APODs")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(item: $viewModel.destination) { destination in
                 switch destination {
                 case .imageDetail(let apod):

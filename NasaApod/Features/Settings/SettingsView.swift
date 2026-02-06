@@ -22,6 +22,7 @@ struct SettingsView: View {
                     .foregroundColor(theme.textSecondary)
             }
             .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
