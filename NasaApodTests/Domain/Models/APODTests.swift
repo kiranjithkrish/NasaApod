@@ -14,6 +14,7 @@ final class APODTests: XCTestCase {
     // MARK: - JSON Decoding Tests
 
     func testDecodeAPODFromValidJSON() throws {
+        // Given
         let json = """
         {
             "date": "2024-01-15",
@@ -26,8 +27,10 @@ final class APODTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
+        // When
         let apod = try JSONDecoder().decode(APOD.self, from: json)
 
+        // Then
         XCTAssertEqual(apod.date, "2024-01-15")
         XCTAssertEqual(apod.title, "Test Title")
         XCTAssertEqual(apod.explanation, "Test explanation")
@@ -38,6 +41,7 @@ final class APODTests: XCTestCase {
     }
 
     func testDecodeAPODWithOptionalFieldsMissing() throws {
+        // Given
         let json = """
         {
             "date": "2024-01-15",
@@ -48,13 +52,16 @@ final class APODTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
+        // When
         let apod = try JSONDecoder().decode(APOD.self, from: json)
 
+        // Then
         XCTAssertNil(apod.hdurl)
         XCTAssertNil(apod.copyright)
     }
 
     func testDecodeAPODWithSnakeCaseMediaType() throws {
+        // Given
         let json = """
         {
             "date": "2024-01-15",
@@ -65,26 +72,33 @@ final class APODTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
+        // When
         let apod = try JSONDecoder().decode(APOD.self, from: json)
 
+        // Then
         XCTAssertEqual(apod.mediaType, .video)
     }
 
     // MARK: - Identifiable Tests
 
     func testIdReturnsDate() {
+        // Given
         let apod = makeAPOD(date: "2024-01-15")
 
+        // Then
         XCTAssertEqual(apod.id, "2024-01-15")
     }
 
     // MARK: - Computed Properties Tests
 
     func testParsedDateReturnsValidDate() {
+        // Given
         let apod = makeAPOD(date: "2024-01-15")
 
+        // When
         let parsedDate = apod.parsedDate
 
+        // Then
         XCTAssertNotNil(parsedDate)
         let calendar = Calendar.current
         XCTAssertEqual(calendar.component(.year, from: parsedDate!), 2024)
@@ -93,57 +107,75 @@ final class APODTests: XCTestCase {
     }
 
     func testParsedDateReturnsNilForInvalidFormat() {
+        // Given
         let apod = makeAPOD(date: "invalid-date")
 
+        // Then
         XCTAssertNil(apod.parsedDate)
     }
 
     func testParsedDateReturnsNilForEmptyString() {
+        // Given
         let apod = makeAPOD(date: "")
 
+        // Then
         XCTAssertNil(apod.parsedDate)
     }
 
     func testHasHDVersionReturnsTrueWhenHdurlPresent() {
+        // Given
         let apod = makeAPOD(hdurl: "https://example.com/hd.jpg")
 
+        // Then
         XCTAssertTrue(apod.hasHDVersion)
     }
 
     func testHasHDVersionReturnsFalseWhenHdurlNil() {
+        // Given
         let apod = makeAPOD(hdurl: nil)
 
+        // Then
         XCTAssertFalse(apod.hasHDVersion)
     }
 
     func testHasHDVersionReturnsFalseWhenHdurlEmpty() {
+        // Given
         let apod = makeAPOD(hdurl: "")
 
+        // Then
         XCTAssertFalse(apod.hasHDVersion)
     }
 
     func testBestQualityURLReturnsHdurlWhenPresent() {
+        // Given
         let apod = makeAPOD(url: "https://example.com/standard.jpg", hdurl: "https://example.com/hd.jpg")
 
+        // Then
         XCTAssertEqual(apod.bestQualityURL, "https://example.com/hd.jpg")
     }
 
     func testBestQualityURLReturnsUrlWhenHdurlNil() {
+        // Given
         let apod = makeAPOD(url: "https://example.com/standard.jpg", hdurl: nil)
 
+        // Then
         XCTAssertEqual(apod.bestQualityURL, "https://example.com/standard.jpg")
     }
 
     func testIsImageReturnsTrueForImageMediaType() {
+        // Given
         let apod = makeAPOD(mediaType: .image)
 
+        // Then
         XCTAssertTrue(apod.isImage)
         XCTAssertFalse(apod.isVideo)
     }
 
     func testIsVideoReturnsTrueForVideoMediaType() {
+        // Given
         let apod = makeAPOD(mediaType: .video)
 
+        // Then
         XCTAssertTrue(apod.isVideo)
         XCTAssertFalse(apod.isImage)
     }
@@ -151,14 +183,18 @@ final class APODTests: XCTestCase {
     // MARK: - Validation Tests
 
     func testValidatePassesForValidAPOD() throws {
+        // Given
         let apod = makeAPOD(date: "2024-01-15")
 
+        // Then
         XCTAssertNoThrow(try apod.validate())
     }
 
     func testValidateThrowsForEmptyDate() {
+        // Given
         let apod = makeAPOD(date: "")
 
+        // When/Then
         XCTAssertThrowsError(try apod.validate()) { error in
             guard case APODError.invalidData(let reason) = error else {
                 XCTFail("Expected invalidData error")
@@ -169,8 +205,10 @@ final class APODTests: XCTestCase {
     }
 
     func testValidateThrowsForEmptyTitle() {
+        // Given
         let apod = makeAPOD(title: "")
 
+        // When/Then
         XCTAssertThrowsError(try apod.validate()) { error in
             guard case APODError.invalidData(let reason) = error else {
                 XCTFail("Expected invalidData error")
@@ -181,8 +219,10 @@ final class APODTests: XCTestCase {
     }
 
     func testValidateThrowsForInvalidURL() {
+        // Given
         let apod = makeAPOD(url: "")
 
+        // When/Then
         XCTAssertThrowsError(try apod.validate()) { error in
             guard case APODError.invalidData(let reason) = error else {
                 XCTFail("Expected invalidData error")
@@ -193,8 +233,10 @@ final class APODTests: XCTestCase {
     }
 
     func testValidateThrowsForInvalidDateFormat() {
+        // Given
         let apod = makeAPOD(date: "01-15-2024") // Wrong format
 
+        // When/Then
         XCTAssertThrowsError(try apod.validate()) { error in
             guard case APODError.invalidData(let reason) = error else {
                 XCTFail("Expected invalidData error")
@@ -205,8 +247,10 @@ final class APODTests: XCTestCase {
     }
 
     func testValidateThrowsForDateBeforeEarliest() {
+        // Given
         let apod = makeAPOD(date: "1990-01-01") // Before June 16, 1995
 
+        // When/Then
         XCTAssertThrowsError(try apod.validate()) { error in
             guard case APODError.invalidDateRange = error else {
                 XCTFail("Expected invalidDateRange error")
@@ -216,8 +260,10 @@ final class APODTests: XCTestCase {
     }
 
     func testValidateThrowsForFutureDate() {
+        // Given
         let apod = makeAPOD(date: "2099-01-01") // Far future
 
+        // When/Then
         XCTAssertThrowsError(try apod.validate()) { error in
             guard case APODError.invalidDateRange = error else {
                 XCTFail("Expected invalidDateRange error")
@@ -227,8 +273,10 @@ final class APODTests: XCTestCase {
     }
 
     func testValidatePassesForEarliestValidDate() throws {
+        // Given
         let apod = makeAPOD(date: "1995-06-16") // First APOD ever
 
+        // Then
         XCTAssertNoThrow(try apod.validate())
     }
 }
