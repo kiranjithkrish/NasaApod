@@ -9,9 +9,18 @@ import SwiftUI
 
 struct ExploreView: View {
     @State private var viewModel: ExploreViewModel
+    @State private var activeSheet: Sheet?
     @Environment(\.theme) private var theme
 
     private let imageCache: ImageCacheActor
+
+    // MARK: - Sheet Types
+
+    enum Sheet: Identifiable {
+        case datePicker
+
+        var id: Self { self }
+    }
 
     // MARK: - Initialization
 
@@ -34,6 +43,12 @@ struct ExploreView: View {
                 content
             }
             .navigationTitle("Explore")
+            .navigationDestination(item: $viewModel.destination) { destination in
+                switch destination {
+                case .imageDetail(let apod):
+                    ImageDetailView(apod: apod, imageCache: imageCache)
+                }
+            }
         }
         .task {
             // Load on appear if idle
@@ -55,25 +70,58 @@ struct ExploreView: View {
                 .font(theme.captionFont)
                 .foregroundColor(theme.textSecondary)
 
+            Button {
+                activeSheet = .datePicker
+            } label: {
+                HStack {
+                    Image(systemName: "calendar")
+                    Text(viewModel.selectedDate, style: .date)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(theme.textSecondary)
+                }
+                .padding(theme.spacing)
+                .background(theme.backgroundColor)
+                .cornerRadius(theme.cornerRadius)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(theme.padding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.cardBackground)
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .datePicker:
+                datePickerSheet
+            }
+        }
+    }
+
+    private var datePickerSheet: some View {
+        NavigationStack {
             DatePicker(
                 "Select Date",
                 selection: $viewModel.selectedDate,
                 in: viewModel.earliestDate...viewModel.latestDate,
                 displayedComponents: .date
             )
-            .datePickerStyle(.compact)
+            .datePickerStyle(.graphical)
             .labelsHidden()
-            .onChange(of: viewModel.selectedDate) {
-                // Dismiss the date picker popup on selection
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                Task {
-                    await viewModel.dateChanged()
+            .padding()
+            .navigationTitle("Select Date")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        activeSheet = nil
+                        Task {
+                            await viewModel.dateChanged()
+                        }
+                    }
                 }
             }
         }
-        .padding(theme.padding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.cardBackground)
+        .presentationDetents([.medium])
     }
 
     // MARK: - Content Views
@@ -149,6 +197,9 @@ struct ExploreView: View {
                             .fill(theme.cardBackground)
                             .frame(height: 300)
                             .shimmer()
+                    }
+                    .onTapGesture {
+                        viewModel.destination = .imageDetail(apod)
                     }
                 } else {
                     // Video placeholder
