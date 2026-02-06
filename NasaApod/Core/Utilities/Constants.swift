@@ -14,6 +14,8 @@ enum Constants {
         static let baseURL = "https://api.nasa.gov/planetary/apod"
 
         /// API key for NASA APOD service
+        /// Note: Hardcoded for demo convenience. Production approach:
+        /// - Use backend proxy (key never on client)
         static let apiKey = "xrtPISSNCl9x1kk8ucrVIVKOAxKCdukvZSQNnNgy"
 
         /// Request timeout in seconds
