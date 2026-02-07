@@ -28,7 +28,13 @@ final class DependencyContainer {
     }()
 
     lazy var repository: APODRepositoryProtocol = {
-        APODRepository(
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
+            print("UI TEST MODE: using MockAPODRepository")
+            return MockAPODRepository()
+        }
+        #endif
+        return APODRepository(
             apiService: apiService,
             cacheService: cacheService
         )
