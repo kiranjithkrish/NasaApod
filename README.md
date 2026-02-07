@@ -30,10 +30,17 @@ Data/              HOW we get it (Network, Cache, Repository)
 
 ### Domain vs Data
 
-| Layer | Contains | Knows about external systems? |
-|-------|----------|------------------------------|
-| **Domain** | Models (`APOD`), Protocols (`APODRepositoryProtocol`) | No - pure business logic |
-| **Data** | Implementations (`APODRepository`, `APIService`, `CacheService`) | Yes - network, disk, etc. |
+```
+┌─────────────────────────────────────────┐
+│  Domain (WHAT)                          │
+│  Models, Protocols                      │
+│  → No external dependencies             │
+├─────────────────────────────────────────┤
+│  Data (HOW)                             │
+│  Repository, APIService, CacheService   │
+│  → Network, disk, external systems      │
+└─────────────────────────────────────────┘
+```
 
 **Why Repositories folder in both?**
 - `Domain/Repositories/` contains the **protocol** (interface) - defines WHAT the app needs
@@ -43,12 +50,17 @@ This separation means Features depend only on Domain protocols, not Data impleme
 
 ### Key Components
 
-| Component | Purpose |
-|-----------|---------|
-| `APIService` | URLSession wrapper with retry logic |
-| `CacheService` | Actor-based cache (memory + disk) |
-| `APODRepository` | Coordinates network and cache with circuit breaker |
-| `CircuitBreaker` | Prevents cascading failures when API is unavailable |
+```
+┌──────────────────┬────────────────────────────────────────────┐
+│  APIService      │  URLSession wrapper with retry logic       │
+├──────────────────┼────────────────────────────────────────────┤
+│  CacheService    │  Actor-based cache (memory + disk)         │
+├──────────────────┼────────────────────────────────────────────┤
+│  APODRepository  │  Coordinates network and cache             │
+├──────────────────┼────────────────────────────────────────────┤
+│  CircuitBreaker  │  Prevents cascading failures when API down │
+└──────────────────┴────────────────────────────────────────────┘
+```
 
 ## Design Decisions
 
@@ -65,7 +77,7 @@ enum LoadingState<T> {
     case failed(Error)
 }
 ```
-- Single enum prevents impossible states (no `isLoading: Bool` + `error: Error?` combinations)
+- Single enum ensures only one state at a time (can't be loading AND errored simultaneously)
 - Views switch on state to render appropriate UI
 - ViewModel updates state, SwiftUI reacts automatically
 
@@ -111,24 +123,6 @@ enum Destination: Hashable {
 - Meets the "last service call" requirement precisely
 - Architecture is extensible: remove the clear step to cache all APODs in future
 
-### Explicit Dependency Injection
-
-ImageCache is injected explicitly via initializer, not SwiftUI Environment:
-
-```swift
-// Explicit injection (used)
-TodayView(viewModel: viewModel, imageCache: imageCache)
-
-// vs Environment (not used)
-TodayView().environment(\.imageCache, imageCache)
-```
-
-**Why explicit?**
-- Not every screen needs image cache (unlike dismiss or colorScheme)
-- Compile-time guarantee that dependencies are provided
-- Clearer data flow and easier debugging
-- Environment is better for truly global, cross-cutting concerns
-
 ### Sheet-Based Date Picker
 
 ExploreView uses a sheet for date selection instead of inline compact picker:
@@ -139,23 +133,10 @@ ExploreView uses a sheet for date selection instead of inline compact picker:
 - Graphical picker style shows full calendar
 - State-driven: `activeSheet = .datePicker` to show, `= nil` to dismiss
 
-### User-Friendly HTTP Error Messages
+### User-Friendly Error Messages
 
-NetworkError provides context-specific messages:
+NetworkError provides context-specific messages for each HTTP status code (400, 401, 404, 429, 5xx) so users understand what went wrong.
 
-| Status | Message |
-|--------|---------|
-| 400 | "Invalid request. Please try again." |
-| 401 | "Invalid API key. Please check your configuration." |
-| 403 | "API access denied. You may have exceeded the rate limit." |
-| 404 | "No APOD available for this date. NASA publishes daily on US Eastern Time." |
-| 429 | "Too many requests. Please wait a moment and try again." |
-| 5xx | "NASA server is temporarily unavailable. Please try again later." |
-
-**Why 404 message mentions timezone?**
-- APOD publishes daily on US Eastern Time
-- Users in other timezones may query "today" before NASA publishes
-- Also applies to dates before June 16, 1995 (APOD start date)
 
 ### CacheService vs URLSession cache
 
@@ -167,13 +148,13 @@ When the API is down, repeated failures waste resources. The circuit breaker sto
 
 ### Actor-based Concurrency
 
-`CacheService` and `CircuitBreaker` use actors for thread-safe state without manual locks. Swift 6 strict concurrency catches data races at compile time.
+`CacheService`, `ImageCacheActor`, and `CircuitBreaker` use actors for thread-safe state without manual locks. Swift 6 strict concurrency catches data races at compile time.
 
 ### Why custom image caching instead of AsyncImage?
 
-`AsyncImage` relies on HTTP cache headers, but NASA's servers don't guarantee proper caching. Images were reloading on every view appearance during testing.
+NASA's image server doesn't send `Cache-Control` headers, so URLSession's caching behavior is unreliable. Images were reloading on every view appearance during testing.
 
-`CachedAsyncImage` + `ImageCacheActor` provides explicit control:
+`CachedAsyncImage` + `ImageCacheActor` gives us explicit control:
 - Memory cache (`NSCache`, 50 MB) for fast session access
 - Disk cache for offline support after app restart
 - Meets the "last service call including image should be cached" requirement
@@ -188,31 +169,9 @@ CacheService uses `FileManager.default` directly. Abstracting it would allow moc
 
 ## Testing
 
-Run tests with ⌘U or:
-
-```bash
-xcodebuild test -scheme NasaApod -destination 'platform=iOS Simulator,name=iPhone 16'
-```
-
 ### Test Style
 
 Tests follow **BDD style** with Given/When/Then comments:
-
-```swift
-func testSaveLastSuccessful_OnlyKeepsOneAPOD_ClearsPrevious() async throws {
-    // Given - Two different APODs
-    let firstAPOD = makeAPOD(date: "2024-01-01")
-    let secondAPOD = makeAPOD(date: "2024-02-02")
-
-    // When - Save first, then second
-    try await cacheService.saveLastSuccessful(firstAPOD)
-    try await cacheService.saveLastSuccessful(secondAPOD)
-
-    // Then - Only second (last) APOD exists
-    let loaded = try await cacheService.loadLastSuccessful()
-    XCTAssertEqual(loaded.date, "2024-02-02")
-}
-```
 
 **Why BDD style?**
 - Tests document expected behavior
@@ -275,6 +234,4 @@ API key is hardcoded for demo/review convenience. A production app would use a m
 
 ## Future Improvements
 
-- Favorites tab to bookmark APODs
-- Share functionality
-- Widget for home screen
+- Animated GIF support (currently displays first frame)
