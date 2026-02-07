@@ -73,6 +73,7 @@ struct TodayView: View {
                 RoundedRectangle(cornerRadius: theme.cornerRadius)
                     .fill(theme.cardBackground)
                     .frame(height: 300)
+                    .shimmer()
 
                 // Title placeholder
                 Text("Loading Amazing Space Photo")
