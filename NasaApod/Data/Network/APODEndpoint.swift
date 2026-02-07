@@ -14,7 +14,7 @@ enum APODEndpoint {
     // MARK: - URL Construction
 
     /// Construct full URL with query parameters
-    func makeURL() throws -> URL {
+    nonisolated func makeURL() throws -> URL {
         guard var components = URLComponents(string: Constants.API.baseURL) else {
             throw NetworkError.invalidURL
         }
@@ -30,7 +30,7 @@ enum APODEndpoint {
 
     // MARK: - Query Parameters
 
-    private var queryItems: [URLQueryItem] {
+    private nonisolated var queryItems: [URLQueryItem] {
         var items: [URLQueryItem] = [
             URLQueryItem(name: "api_key", value: Constants.API.apiKey),
             URLQueryItem(name: "thumbs", value: "true")  // Request video thumbnails
@@ -49,7 +49,7 @@ enum APODEndpoint {
 
     // MARK: - Date Formatting
 
-    private func formatDate(_ date: Date) -> String {
+    private nonisolated func formatDate(_ date: Date) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
         return formatter.string(from: date)

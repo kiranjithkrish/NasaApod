@@ -33,7 +33,7 @@ struct APIService: APIServiceProtocol {
     /// - Parameter date: Date to fetch APOD for (nil = today)
     /// - Returns: APOD model
     /// - Throws: NetworkError or APODError
-    func fetchAPOD(for date: Date?) async throws -> APOD {
+    nonisolated func fetchAPOD(for date: Date?) async throws -> APOD {
         let endpoint = APODEndpoint.apod(date: date)
         let url = try endpoint.makeURL()
 
@@ -51,7 +51,7 @@ struct APIService: APIServiceProtocol {
 
     // MARK: - Private Helpers
 
-    private func performRequest(url: URL) async throws -> APOD {
+    private nonisolated func performRequest(url: URL) async throws -> APOD {
         var request = URLRequest(url: url)
         request.timeoutInterval = Constants.API.timeoutInterval
 
@@ -90,7 +90,7 @@ struct APIService: APIServiceProtocol {
         }
     }
 
-    private func validateResponse(_ response: URLResponse) throws {
+    private nonisolated func validateResponse(_ response: URLResponse) throws {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.unknown(NSError(
                 domain: "APIService",
@@ -104,7 +104,7 @@ struct APIService: APIServiceProtocol {
         }
     }
 
-    private func decodeAPOD(from data: Data) throws -> APOD {
+    private nonisolated func decodeAPOD(from data: Data) throws -> APOD {
         let decoder = JSONDecoder()
 
         do {
@@ -122,7 +122,7 @@ struct APIService: APIServiceProtocol {
         }
     }
 
-    private func mapURLError(_ error: URLError) -> Error {
+    private nonisolated func mapURLError(_ error: URLError) -> Error {
         switch error.code {
         case .notConnectedToInternet, .networkConnectionLost:
             return APODError.networkUnavailable
