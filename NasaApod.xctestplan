@@ -1,0 +1,38 @@
+{
+  "configurations" : [
+    {
+      "id" : "12691503-9F4E-4138-8403-9B12F080FAD6",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:NasaApod.xcodeproj",
+      "identifier" : "799A9B832F3279A400D90F68",
+      "name" : "NasaApod"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:NasaApod.xcodeproj",
+        "identifier" : "799A9B902F3279A600D90F68",
+        "name" : "NasaApodTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:NasaApod.xcodeproj",
+        "identifier" : "799A9B9A2F3279A600D90F68",
+        "name" : "NasaApodUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
