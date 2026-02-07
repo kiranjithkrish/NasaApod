@@ -38,10 +38,10 @@ struct APODRepository: APODRepositoryProtocol {
     // MARK: - Public Methods
 
     func fetchAPOD(for date: Date) async throws -> APOD {
-        // Check circuit breaker
+        // Check circuit breaker - use cache if open
         guard await circuitBreaker.canAttempt() else {
             AppLogger.warning("Circuit breaker open, using cache", category: .network)
-            throw APODError.circuitBreakerOpen
+            return try await loadFromCache(for: date, originalError: APODError.circuitBreakerOpen)
         }
 
         // Try network first

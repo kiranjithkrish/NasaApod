@@ -35,7 +35,7 @@ final class APODRepositoryTests: XCTestCase {
 
     func testFetchAPODCachesOnSuccess() async throws {
         // Given
-        let expectedAPOD = makeAPOD(date: "2024-01-15")
+        let expectedAPOD = makeAPOD(date: "2024-01-15", title: "Cached Title")
         let mockAPI = MockAPIServiceForTest(result: .success(expectedAPOD))
         let mockCache = MockCacheServiceForTest()
         let repository = APODRepository(
@@ -48,9 +48,9 @@ final class APODRepositoryTests: XCTestCase {
         // When
         _ = try await repository.fetchAPOD(for: Date())
 
-        // Then
-        let savedCount = await mockCache.saveCallCount
-        XCTAssertGreaterThan(savedCount, 0)
+        // Then - Verify APOD was saved by loading it back
+        let cached = try await mockCache.loadLastSuccessful()
+        XCTAssertEqual(cached.title, "Cached Title")
     }
 
     // MARK: - Fallback Tests
@@ -142,10 +142,12 @@ final class APODRepositoryTests: XCTestCase {
         XCTAssertFalse(isAvailable)
     }
 
-    func testCircuitBreakerThrowsWhenOpen() async {
+    func testCircuitBreakerOpenReturnsCachedAPOD() async throws {
         // Given
+        let cachedAPOD = makeAPOD(date: "2024-01-15", title: "Cached APOD")
         let mockAPI = MockAPIServiceForTest(result: .failure(APODError.networkUnavailable))
         let mockCache = MockCacheServiceForTest()
+        await mockCache.setLastSuccessful(cachedAPOD)
         let repository = APODRepository(
             apiService: mockAPI,
             cacheService: mockCache,
@@ -156,14 +158,32 @@ final class APODRepositoryTests: XCTestCase {
         // When - First failure opens circuit
         _ = try? await repository.fetchAPOD(for: Date())
 
-        // Then - Second call should throw circuit breaker open error
+        // Then - Second call should return cached APOD
+        let result = try await repository.fetchAPOD(for: Date())
+        XCTAssertEqual(result.title, "Cached APOD")
+    }
+
+    func testCircuitBreakerOpenThrowsWhenNoCacheAvailable() async {
+        // Given
+        let mockAPI = MockAPIServiceForTest(result: .failure(APODError.networkUnavailable))
+        let mockCache = MockCacheServiceForTest()
+        // No cache data set
+        let repository = APODRepository(
+            apiService: mockAPI,
+            cacheService: mockCache,
+            maxFailures: 1,
+            resetTimeout: 60
+        )
+
+        // When - First failure opens circuit
+        _ = try? await repository.fetchAPOD(for: Date())
+
+        // Then - Second call should throw since no cache available
         do {
             _ = try await repository.fetchAPOD(for: Date())
-            XCTFail("Expected circuitBreakerOpen error")
-        } catch let error as APODError {
-            XCTAssertEqual(error, .circuitBreakerOpen)
+            XCTFail("Expected error when circuit open and no cache")
         } catch {
-            XCTFail("Unexpected error type: \(error)")
+            // Expected - circuit open and no cache
         }
     }
 
