@@ -10,6 +10,7 @@ import SwiftUI
 struct TodayView: View {
     @State private var viewModel: TodayViewModel
     @Environment(\.theme) private var theme
+    @Environment(\.scenePhase) private var scenePhase
 
     private let imageCache: ImageCacheActor
 
@@ -27,14 +28,16 @@ struct TodayView: View {
             content
                 .navigationTitle("Today's APOD")
                 .navigationBarTitleDisplayMode(.inline)
-                .refreshable {
-                    await viewModel.refresh()
-                }
         }
         .task {
             // Load on appear if idle
             if viewModel.state.isIdle {
                 await viewModel.loadAPOD()
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task { await viewModel.refreshIfStale() }
             }
         }
     }
@@ -62,7 +65,7 @@ struct TodayView: View {
         ContentUnavailableView(
             "No APOD Loaded",
             systemImage: "photo",
-            description: Text("Pull down to load today's Astronomy Picture of the Day")
+            description: Text("Today's Astronomy Picture of the Day will load automatically")
         )
     }
 

@@ -49,12 +49,15 @@ final class TodayViewModel {
 
     /// Retry loading after error
     func retry() async {
+        await repository.reset()
         await loadAPOD()
     }
 
-    /// Refresh (called by pull-to-refresh)
-    func refresh() async {
-        // Reset repository if circuit breaker is open
+    /// Reload if the loaded APOD is from a previous day
+    func refreshIfStale() async {
+        guard case .loaded(let apod) = state,
+              let apodDate = apod.parsedDate,
+              !Calendar.current.isDateInToday(apodDate) else { return }
         await repository.reset()
         await loadAPOD()
     }
