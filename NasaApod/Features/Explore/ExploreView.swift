@@ -11,6 +11,7 @@ struct ExploreView: View {
     @State private var viewModel: ExploreViewModel
     @State private var activeSheet: Sheet?
     @Environment(\.theme) private var theme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private let imageCache: ImageCacheActor
 
@@ -122,7 +123,7 @@ struct ExploreView: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents(horizontalSizeClass == .regular ? [.large] : [.medium])
     }
 
     // MARK: - Content Views
