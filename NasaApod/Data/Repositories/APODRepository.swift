@@ -37,11 +37,11 @@ struct APODRepository: APODRepositoryProtocol {
 
     // MARK: - Public Methods
 
-    func fetchAPOD(for date: Date) async throws -> APOD {
+    func fetchAPOD(for date: Date) async throws -> FetchResult {
         // Check circuit breaker - use cache if open
         guard await circuitBreaker.canAttempt() else {
             AppLogger.warning("Circuit breaker open, using cache", category: .network)
-            return try await loadFromCache(for: date, originalError: APODError.circuitBreakerOpen)
+            return .cachedFallback(try await loadFromCache(for: date, originalError: APODError.circuitBreakerOpen))
         }
 
         // Try network first
@@ -52,14 +52,14 @@ struct APODRepository: APODRepositoryProtocol {
             try? await cacheService.saveLastSuccessful(apod)
             await circuitBreaker.recordSuccess()
 
-            return apod
+            return .fresh(apod)
 
         } catch let error as NetworkError {
             // Only fall back to cache for connectivity errors, not HTTP errors
             if shouldFallbackToCache(for: error) {
                 await circuitBreaker.recordFailure()
                 AppLogger.warning("Network unavailable, falling back to cache", category: .network)
-                return try await loadFromCache(for: date, originalError: error)
+                return .cachedFallback(try await loadFromCache(for: date, originalError: error))
             } else {
                 // HTTP errors (404, etc.) - don't use cache, show error
                 AppLogger.warning("HTTP error: \(error.localizedDescription)", category: .network)
@@ -71,7 +71,7 @@ struct APODRepository: APODRepositoryProtocol {
             if shouldFallbackToCache(for: error) {
                 await circuitBreaker.recordFailure()
                 AppLogger.warning("Network fetch failed: \(error.localizedDescription)", category: .network)
-                return try await loadFromCache(for: date, originalError: error)
+                return .cachedFallback(try await loadFromCache(for: date, originalError: error))
             } else {
                 throw error
             }
@@ -80,7 +80,7 @@ struct APODRepository: APODRepositoryProtocol {
             // Unknown errors - try cache as fallback
             await circuitBreaker.recordFailure()
             AppLogger.error("Unexpected error", error: error, category: .network)
-            return try await loadFromCache(for: date, originalError: error)
+            return .cachedFallback(try await loadFromCache(for: date, originalError: error))
         }
     }
 
@@ -153,16 +153,17 @@ struct APODRepository: APODRepositoryProtocol {
 struct MockAPODRepository: APODRepositoryProtocol {
     var mockAPOD: APOD = .sample
     var shouldFail: Bool = false
+    var simulateCachedFallback: Bool = false
     var errorToThrow: APODError = .networkUnavailable
 
-    func fetchAPOD(for date: Date) async throws -> APOD {
+    func fetchAPOD(for date: Date) async throws -> FetchResult {
         try await Task.sleep(for: .seconds(0.5))
 
         if shouldFail {
             throw errorToThrow
         }
 
-        return mockAPOD
+        return simulateCachedFallback ? .cachedFallback(mockAPOD) : .fresh(mockAPOD)
     }
 
     func isAvailable() async -> Bool {

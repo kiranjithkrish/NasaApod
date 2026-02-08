@@ -29,8 +29,8 @@ final class APODRepositoryTests: XCTestCase {
         let result = try await repository.fetchAPOD(for: Date())
 
         // Then
-        let title = result.title
-        XCTAssertEqual(title, "Network APOD")
+        XCTAssertEqual(result, .fresh(expectedAPOD))
+        XCTAssertEqual(result.apod.title, "Network APOD")
     }
 
     func testFetchAPODCachesOnSuccess() async throws {
@@ -73,8 +73,8 @@ final class APODRepositoryTests: XCTestCase {
         let result = try await repository.fetchAPOD(for: date)
 
         // Then
-        let resultTitle = result.title
-        XCTAssertEqual(resultTitle, "Cached APOD")
+        XCTAssertTrue(result.isCachedFallback)
+        XCTAssertEqual(result.apod.title, "Cached APOD")
     }
 
     func testFetchAPODFallsBackToLastSuccessfulWhenDateNotCached() async throws {
@@ -94,8 +94,8 @@ final class APODRepositoryTests: XCTestCase {
         let result = try await repository.fetchAPOD(for: Date())
 
         // Then
-        let resultTitle = result.title
-        XCTAssertEqual(resultTitle, "Last Successful")
+        XCTAssertTrue(result.isCachedFallback)
+        XCTAssertEqual(result.apod.title, "Last Successful")
     }
 
     func testFetchAPODThrowsWhenBothNetworkAndCacheFail() async {
@@ -160,7 +160,8 @@ final class APODRepositoryTests: XCTestCase {
 
         // Then - Second call should return cached APOD
         let result = try await repository.fetchAPOD(for: Date())
-        XCTAssertEqual(result.title, "Cached APOD")
+        XCTAssertTrue(result.isCachedFallback)
+        XCTAssertEqual(result.apod.title, "Cached APOD")
     }
 
     func testCircuitBreakerOpenThrowsWhenNoCacheAvailable() async {

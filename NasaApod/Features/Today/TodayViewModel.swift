@@ -32,9 +32,9 @@ final class TodayViewModel {
         state = .loading
 
         do {
-            let apod = try await repository.fetchAPOD(for: Date())
-            state = .loaded(apod)
-            AppLogger.info("Loaded today's APOD: \(apod.title)", category: .ui)
+            let result = try await repository.fetchAPOD(for: Date())
+            state = .loaded(result.apod)
+            AppLogger.info("Loaded today's APOD: \(result.apod.title)", category: .ui)
 
         } catch let error as APODError {
             state = .failed(error)

@@ -32,7 +32,7 @@
 		799A9B912F3279A600D90F68 /* NasaApodTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NasaApodTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		799A9B9B2F3279A600D90F68 /* NasaApodUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NasaApodUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		799A9CDC2F36A40C00D90F68 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		799AA0722F37961300D90F68 /* NasaApod.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = NasaApod.xctestplan; sourceTree = "<group>"; };
+		799AA0722F37961300D90F68 /* NasaApod.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = NasaApod.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */

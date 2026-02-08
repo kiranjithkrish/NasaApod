@@ -12,9 +12,9 @@ protocol APODRepositoryProtocol: Sendable {
     /// Fetch APOD for a specific date
     /// Network → Cache fallback strategy
     /// - Parameter date: Date to fetch APOD for
-    /// - Returns: APOD model
+    /// - Returns: FetchResult indicating fresh data or cached fallback
     /// - Throws: APODError if both network and cache fail
-    func fetchAPOD(for date: Date) async throws -> APOD
+    func fetchAPOD(for date: Date) async throws -> FetchResult
 
     /// Check if repository is available (not in circuit breaker open state)
     func isAvailable() async -> Bool

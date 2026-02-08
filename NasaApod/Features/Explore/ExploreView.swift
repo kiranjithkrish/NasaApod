@@ -137,12 +137,31 @@ struct ExploreView: View {
         case .loading:
             loadingView
 
-        case .loaded(let apod):
-            apodContentView(apod: apod)
+        case .loaded(let result):
+            VStack(spacing: 0) {
+                if result.isCachedFallback {
+                    offlineBanner
+                }
+                apodContentView(apod: result.apod)
+            }
 
         case .failed(let error):
             errorView(error: error)
         }
+    }
+
+    // MARK: - Offline Banner
+
+    private var offlineBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.slash")
+            Text("You're offline. Showing last APOD.")
+                .font(theme.captionFont)
+        }
+        .foregroundColor(theme.textSecondary)
+        .padding(theme.spacing / 2)
+        .frame(maxWidth: .infinity)
+        .background(theme.cardBackground)
     }
 
     private var emptyStateView: some View {
@@ -277,6 +296,11 @@ struct ExploreView: View {
 
 #Preview("Loaded") {
     ExploreView(viewModel: .previewLoaded(), imageCache: ImageCacheActor())
+        .theme(DefaultTheme())
+}
+
+#Preview("Cached Fallback") {
+    ExploreView(viewModel: .previewCachedFallback(), imageCache: ImageCacheActor())
         .theme(DefaultTheme())
 }
 

@@ -23,8 +23,8 @@ final class ExploreViewModel {
     /// Navigation destination (nil = no navigation active)
     var destination: Destination?
 
-    /// Loading state using enum (prevents impossible states)
-    var state: LoadingState<APOD> = .idle
+    /// Loading state carrying FetchResult so the view knows if data is fresh or cached
+    var state: LoadingState<FetchResult> = .idle
 
     /// Selected date for APOD lookup
     var selectedDate: Date = Date()
@@ -50,9 +50,15 @@ final class ExploreViewModel {
         state = .loading
 
         do {
-            let apod = try await repository.fetchAPOD(for: selectedDate)
-            state = .loaded(apod)
-            AppLogger.info("Loaded APOD for \(selectedDate): \(apod.title)", category: .ui)
+            let result = try await repository.fetchAPOD(for: selectedDate)
+            state = .loaded(result)
+
+            // Sync date picker to the cached APOD's actual date
+            if result.isCachedFallback, let cachedDate = result.apod.parsedDate {
+                selectedDate = cachedDate
+            }
+
+            AppLogger.info("Loaded APOD for \(selectedDate): \(result.apod.title)", category: .ui)
 
         } catch let error as APODError {
             state = .failed(error)
@@ -81,7 +87,7 @@ final class ExploreViewModel {
 #if DEBUG
 extension ExploreViewModel {
     /// Create ViewModel with mock repository for previews
-    static func preview(state: LoadingState<APOD> = .idle) -> ExploreViewModel {
+    static func preview(state: LoadingState<FetchResult> = .idle) -> ExploreViewModel {
         let viewModel = ExploreViewModel(repository: MockAPODRepository())
         viewModel.state = state
         return viewModel
@@ -94,7 +100,12 @@ extension ExploreViewModel {
 
     /// Create ViewModel with loaded data
     static func previewLoaded() -> ExploreViewModel {
-        preview(state: .loaded(.sample))
+        preview(state: .loaded(.fresh(.sample)))
+    }
+
+    /// Create ViewModel with cached fallback data
+    static func previewCachedFallback() -> ExploreViewModel {
+        preview(state: .loaded(.cachedFallback(.sample)))
     }
 
     /// Create ViewModel with error
