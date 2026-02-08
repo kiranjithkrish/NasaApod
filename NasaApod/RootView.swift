@@ -19,7 +19,7 @@ struct RootView: View {
                 imageCache: container.imageCache
             )
                 .tabItem {
-                    Label("Today", systemImage: "house.fill")
+                    Label("Today", systemImage: "calendar")
                 }
                 .tag(AppTab.today)
 
@@ -29,7 +29,7 @@ struct RootView: View {
                 imageCache: container.imageCache
             )
                 .tabItem {
-                    Label("Explore", systemImage: "safari.fill")
+                    Label("Explore", systemImage: "archivebox")
                 }
                 .tag(AppTab.explore)
 
