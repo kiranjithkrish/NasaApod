@@ -66,114 +66,35 @@ This separation means Features depend only on Domain protocols, not Data impleme
 
 ### State-Driven UI
 
-All UI follows a declarative, state-driven approach:
-
-**Content State** - `LoadingState<T>` enum:
-```swift
-enum LoadingState<T> {
-    case idle
-    case loading
-    case loaded(T)
-    case failed(Error)
-}
-```
-- Single enum ensures only one state at a time (can't be loading AND errored simultaneously)
-- Views switch on state to render appropriate UI
-- ViewModel updates state, SwiftUI reacts automatically
-
-**Presentation State** - Optional enums for sheets:
-```swift
-enum Sheet: Identifiable {
-    case datePicker
-}
-@State private var activeSheet: Sheet?  // nil = dismissed
-```
-- Avoids boolean flags like `isDatePickerPresented: Bool`
-- Extensible: add more cases for additional sheets
-
-**Navigation State** - Destination enum:
-```swift
-enum Destination: Hashable {
-    case imageDetail(APOD)
-}
-@Published var destination: Destination?
-```
-- Navigation driven by state, not imperative push/pop
-- Extensible for deep linking: just set `destination = .imageDetail(apod)` from URL handler
-- Single source of truth for navigation stack
+All state is modeled with enums to prevent impossible states. `LoadingState<T>` for content (idle/loading/loaded/failed), optional enums for sheets and navigation destinations. No boolean flags — each state is mutually exclusive and extensible.
 
 ### Only Cache Last Successful APOD
 
-**Challenge requirement**: "Last service call including image should be cached and loaded if any subsequent service call fails"
+Challenge requires "last service call including image should be cached". We cache only ONE APOD at a time — `saveLastSuccessful()` clears previous before saving. APOD date is used as cache key to link data with its image. Architecture is extensible: remove the clear step to cache all APODs.
 
-**Interpretation**: Cache only the LAST successful APOD + image, not every one loaded.
+### CacheService vs URLSession Cache
 
-**Implementation**:
-- `CacheService.saveLastSuccessful()` clears previous cache before saving
-- `ImageCacheActor.saveLastSuccessfulImage()` clears previous before saving
-- APOD date used as cache key (foreign key relationship between APOD data and image)
+URLSession respects HTTP cache headers — if the server says `no-cache`, it won't cache. We need guaranteed offline fallback, so `CacheService` provides explicit control regardless of server headers. NASA's image server also doesn't send `Cache-Control` headers, so `CachedAsyncImage` + `ImageCacheActor` gives us explicit memory + disk caching.
 
-**Why date as key?**
-- Links APOD JSON data with its cached image
-- When loading from cache, we can retrieve both the APOD metadata AND its image
-- Prevents mismatched data (wrong image for an APOD)
+### FetchResult Enum at Repository Level
 
-**Why clear before save?**
-- Ensures only ONE entry exists at a time
-- Meets the "last service call" requirement precisely
-- Architecture is extensible: remove the clear step to cache all APODs in future
+The repository returns `FetchResult` (`.fresh` or `.cachedFallback`) instead of a raw `APOD`. This lets the UI know whether data came from the network or cache without inferring it from date comparison. The Explore page uses this to show an offline banner and sync the date picker.
 
-### Sheet-Based Date Picker
+### scenePhase Auto-Refresh
 
-ExploreView uses a sheet for date selection instead of inline compact picker:
-
-**Why?**
-- Compact DatePicker had unreliable auto-dismiss on date selection
-- Sheet provides clear user flow: tap → select → Done
-- Graphical picker style shows full calendar
-- State-driven: `activeSheet = .datePicker` to show, `= nil` to dismiss
-
-### User-Friendly Error Messages
-
-NetworkError provides context-specific messages for each HTTP status code (400, 401, 404, 429, 5xx) so users understand what went wrong.
-
-
-### CacheService vs URLSession cache
-
-URLSession respects HTTP cache headers - if the server says `no-cache`, it won't cache. The challenge requires guaranteed offline fallback, so `CacheService` provides explicit control regardless of server headers.
+APOD does not change intra-day, so pull-to-refresh was misleading. Instead, the Today page monitors `scenePhase` and auto-refreshes only when the day has changed. Uses `Calendar.current.isDateInToday()` — zero-cost check, no timers or polling.
 
 ### Circuit Breaker
 
-When the API is down, repeated failures waste resources. The circuit breaker stops retrying after N failures and uses cache instead, providing graceful degradation.
+When the API is down, the circuit breaker stops retrying after N failures and returns cached data instead. Prevents resource waste and provides graceful degradation.
 
 ### Actor-based Concurrency
 
 `CacheService`, `ImageCacheActor`, and `CircuitBreaker` use actors for thread-safe state without manual locks. Swift 6 strict concurrency catches data races at compile time.
 
-### Why custom image caching instead of AsyncImage?
+### Protocol-based DI
 
-NASA's image server doesn't send `Cache-Control` headers, so URLSession's caching behavior is unreliable. Images were reloading on every view appearance during testing.
-
-`CachedAsyncImage` + `ImageCacheActor` gives us explicit control:
-- Memory cache (`NSCache`, 50 MB) for fast session access
-- Disk cache for offline support after app restart
-- Meets the "last service call including image should be cached" requirement
-
-### Protocol-based Dependency Injection
-
-Chose protocol-based DI over struct closures (Point-Free style) for better Xcode tooling and familiarity for reviewers.
-
-### scenePhase Auto-Refresh vs Pull-to-Refresh
-
-APOD does not change intra-day, so pull-to-refresh was misleading — it implied new data might be available. Instead, the Today page monitors `scenePhase` and auto-refreshes only when the day has actually changed (user returns to the app on a new day). Uses `Calendar.current.isDateInToday()` to compare the loaded APOD's date with today — zero-cost check, no timers or polling.
-
-### FetchResult Enum at Repository Level
-
-The repository returns `FetchResult` (`.fresh` or `.cachedFallback`) instead of a raw `APOD`. This lets the UI know whether data came from the network or cache without inferring it from date comparison. The Explore page uses this to show an offline banner and sync the date picker when displaying cached fallback data.
-
-### FileManager in CacheService
-
-CacheService uses `FileManager.default` directly. Abstracting it would allow mocking disk errors, but adds complexity and `FileManager` isn't `Sendable` (complicates actor isolation). Tests use real filesystem and clean up after each run.
+Chose protocol-based DI over struct closures (Point-Free style) for better Xcode tooling and familiarity for reviewers. `FileManager.default` used directly in `CacheService` — abstracting it adds complexity and `FileManager` isn't `Sendable`.
 
 ## Testing
 
@@ -192,6 +113,7 @@ Tests follow **BDD style** with Given/When/Then comments:
 - **Domain Models**: APOD validation, MediaType
 - **Data Layer**: APIService, CacheService, APODRepository
 - **Image Caching**: ImageCacheActor (memory + disk, last successful behavior)
+- **ViewModels**: TodayViewModel (stale refresh), ExploreViewModel (cached fallback, date sync)
 
 ## Project Structure
 
@@ -240,6 +162,16 @@ API key is hardcoded for demo/review convenience. A production app would use a m
 - [x] Dynamic Type accessibility
 - [x] iPad support
 
+## Known Issues
+
+- **No offline handling in Today view** — Only the Explore page shows an offline banner with cached fallback. Today page shows an error when offline with no cached data.
+- **No auto-refresh in Explore view** — scenePhase monitoring only runs on the Today page. If the user is on the Explore tab when the day changes, it won't auto-refresh.
+- **"APOD not yet published" treated as error** — When NASA hasn't published today's APOD yet (typically before morning US time), it's shown as a generic error. Ideally this would be a distinct state to enable auto-retry or a countdown UI.
+
 ## Future Improvements
 
+- Cache all visited APODs — currently only the last successful is cached; architecture supports caching all (remove the `clearCache()` before save)
+- Deep linking — `Destination` enum is ready but no URL handler wired up
+- Theme picker — `AppTheme` protocol supports custom themes but no UI to switch
+- Favorites and Settings — tabs are scaffolded for extensibility but not yet implemented
 - Animated GIF support (currently displays first frame)

@@ -162,9 +162,9 @@ struct TodayView: View {
 
     private func errorView(error: Error) -> some View {
         ContentUnavailableView {
-            Label("Failed to Load", systemImage: "exclamationmark.triangle")
+            Label("Picture Unavailable", systemImage: "photo.on.rectangle.angled")
         } description: {
-            Text(error.localizedDescription)
+            Text("The picture for this date may not be available yet. Try again later.")
         } actions: {
             Button("Try Again") {
                 Task {

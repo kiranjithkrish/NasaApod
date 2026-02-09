@@ -66,8 +66,8 @@ enum APODError: Error, LocalizedError, Sendable {
             return "No cached data available. Please connect to the internet to load fresh data."
 
         // Repository
-        case .repositoryFailed(let error):
-            return "Repository error: \(error.localizedDescription)"
+        case .repositoryFailed:
+            return "Something went wrong. Please try again later."
         case .circuitBreakerOpen:
             return "Service temporarily unavailable. Please try again later."
         }
