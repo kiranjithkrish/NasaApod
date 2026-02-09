@@ -47,6 +47,7 @@ struct RootView: View {
                 }
                 .tag(AppTab.settings)
         }
+        .sensoryFeedback(.selection, trigger: selectedTab)
         .theme(DefaultTheme())
     }
 }
