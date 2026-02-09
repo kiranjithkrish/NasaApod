@@ -167,6 +167,7 @@ API key is hardcoded for demo/review convenience. A production app would use a m
 - **No offline handling in Today view** — Only the Explore page shows an offline banner with cached fallback. Today page shows an error when offline with no cached data.
 - **No auto-refresh in Explore view** — scenePhase monitoring only runs on the Today page. If the user is on the Explore tab when the day changes, it won't auto-refresh.
 - **"APOD not yet published" treated as error** — When NASA hasn't published today's APOD yet (typically before morning US time), it's shown as a generic error. Ideally this would be a distinct state to enable auto-retry or a countdown UI.
+- **Theming is basic** — A new theme requires additional UI-layer wiring (backgrounds, nav bars, scroll views). The current theme system is not yet fully applied across all containers.
 
 ## Future Improvements
 
