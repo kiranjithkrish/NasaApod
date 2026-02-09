@@ -163,6 +163,14 @@ NASA's image server doesn't send `Cache-Control` headers, so URLSession's cachin
 
 Chose protocol-based DI over struct closures (Point-Free style) for better Xcode tooling and familiarity for reviewers.
 
+### scenePhase Auto-Refresh vs Pull-to-Refresh
+
+APOD does not change intra-day, so pull-to-refresh was misleading — it implied new data might be available. Instead, the Today page monitors `scenePhase` and auto-refreshes only when the day has actually changed (user returns to the app on a new day). Uses `Calendar.current.isDateInToday()` to compare the loaded APOD's date with today — zero-cost check, no timers or polling.
+
+### FetchResult Enum at Repository Level
+
+The repository returns `FetchResult` (`.fresh` or `.cachedFallback`) instead of a raw `APOD`. This lets the UI know whether data came from the network or cache without inferring it from date comparison. The Explore page uses this to show an offline banner and sync the date picker when displaying cached fallback data.
+
 ### FileManager in CacheService
 
 CacheService uses `FileManager.default` directly. Abstracting it would allow mocking disk errors, but adds complexity and `FileManager` isn't `Sendable` (complicates actor isolation). Tests use real filesystem and clean up after each run.
